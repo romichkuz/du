@@ -2,6 +2,8 @@ import os
 import argparse
 from enum import Enum
 from pwd import getpwuid
+import math
+import time
 
 class Type(Enum):
     DIR = 1,
@@ -36,9 +38,21 @@ def get_size_MB(size):
     return size / 1024 / 1024
 
 
+def get_progress_bar(count):
+    return 'Progress [' + (count * '*') + (10 - count) * ' ' + ']'
+
+
 def get_objs_sizes(path):
     objs = []
+    objs_count = len(list(os.walk(path)))
+    counter = 0
+    
     for dirpath, dirnames, filenames in os.walk(path): 
+        print("\033c", end="")
+        counter += 1
+        print(get_progress_bar(math.trunc(counter / objs_count * 10)))
+        time.sleep(0.01)
+
         dir_obj = {
             'path': dirpath,
             'size': get_dir_size(dirpath),
