@@ -11,7 +11,7 @@ class Type(Enum):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help='Путь до директории')
-    parser.add_argument('--g', choices=['e', 'o'])
+    parser.add_argument('--g', choices=['e', 'u'])
 
     return parser.parse_args()
 
@@ -19,11 +19,16 @@ def parse_args():
 def get_dir_size(path):
     total_size = 0
     for obj in os.scandir(path):
-        if obj.is_file():
-            total_size += obj.stat().st_size
-        elif obj.is_dir():
-            total_size += get_dir_size(obj.path)
-    
+        try:
+            if obj.is_symlink():
+                continue
+            if obj.is_file():
+                total_size += obj.stat().st_size
+            elif obj.is_dir():
+                total_size += get_dir_size(obj.path)
+        except PermissionError:
+            pass
+        
     return total_size
 
 
@@ -42,14 +47,17 @@ def get_objs_sizes(path):
         objs.append(dir_obj)
         
         for filename in filenames:
-            file_path = f'{dirpath}/{filename}'
-            file = {
-                'path': file_path,
-                'size': os.path.getsize(file_path),
-                'type': Type.FILE
-            }
+            try:
+                file_path = f'{dirpath}/{filename}'
+                file = {
+                    'path': file_path,
+                    'size': os.path.getsize(file_path),
+                    'type': Type.FILE
+                }
 
-            objs.append(file)
+                objs.append(file)
+            except FileNotFoundError:
+                pass
 
     return objs
 
@@ -80,14 +88,17 @@ def group_by_ext(obj):
 
 
 def group_by_user(obj):
-    return getpwuid(os.stat(obj['path']).st_uid).pw_name
+    try:
+        return getpwuid(os.stat(obj['path']).st_uid).pw_name
+    except KeyError:
+        return "User name not found"
 
 GROUP_BY_FUNCS = {
     'e': group_by_ext,
-    'o': group_by_user
+    'u': group_by_user
 }
-
 # END GROUPING FUNCTIONALITY
+
 
 def du(path, groupby=None):
     objs = get_objs_sizes(path)
