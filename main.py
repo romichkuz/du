@@ -51,7 +51,7 @@ def get_objs_sizes(path):
         print("\033c", end="")
         counter += 1
         print(get_progress_bar(math.trunc(counter / objs_count * 10)))
-        time.sleep(0.01)
+        #time.sleep(0.01)
 
         dir_obj = {
             'path': dirpath,
